@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Workout Routine App</title>
+  <meta name="theme-color" content="#050505">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="筋トレ管理">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="icons/icon-192.png" sizes="192x192">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="app-shell">
+    <header class="hero">
+      <div>
+        <p class="eyebrow">LOCAL WORKOUT TRACKER</p>
+        <h1>今日の筋トレ管理</h1>
+        <p class="hero-copy">Push / Pull / Legs と部位ごとのメニューを切り替えながら、セット単位で重量と回数を記録できます。</p>
+      </div>
+      <div class="hero-stats">
+        <div class="stat-card">
+          <span class="stat-label">今日の日付</span>
+          <strong id="todayLabel">-</strong>
+        </div>
+        <div class="stat-card">
+          <span class="stat-label">種目数</span>
+          <strong id="completionStat">0</strong>
+        </div>
+        <div class="stat-card">
+          <span class="stat-label">合計セット</span>
+          <strong id="setStat">0</strong>
+        </div>
+        <div class="stat-card">
+          <span class="stat-label">合計ボリューム</span>
+          <strong id="volumeStat">0kg</strong>
+        </div>
+      </div>
+    </header>
+
+    <main class="grid">
+      <section class="panel panel-main">
+        <div class="section-head">
+          <div>
+            <p class="section-kicker">TODAY</p>
+            <h2>トレーニング入力</h2>
+          </div>
+          <div class="header-actions">
+            <button id="openHistoryButton" class="button-secondary" type="button">過去ログ</button>
+            <button id="addExerciseButton" class="button button-secondary" type="button">種目を追加</button>
+          </div>
+        </div>
+
+        <div class="edit-banner">
+          <div>
+            <p class="mini-label">Editing</p>
+            <h3 id="editingDateLabel">-</h3>
+          </div>
+          <button id="returnTodayButton" class="button-secondary" type="button">今日に戻る</button>
+        </div>
+
+        <div class="control-stack">
+          <div class="control-card">
+            <span class="mini-label">Split</span>
+            <div id="splitButtons" class="segmented"></div>
+          </div>
+
+          <div class="control-card">
+            <span class="mini-label">Body Part</span>
+            <div id="bodyPartButtons" class="chip-group"></div>
+          </div>
+
+          <details class="control-card collapsible-card template-toolbar" open>
+            <summary>テンプレートを使う</summary>
+            <div class="collapsible-body template-toolbar-body">
+              <div>
+                <span class="mini-label">Use Template</span>
+                <h3 class="toolbar-title">保存済みテンプレート</h3>
+                <p class="toolbar-copy">保存した種目テンプレートを選ぶと、セット内容ごと今日のメニューに追加できます。</p>
+              </div>
+              <div class="template-actions">
+                <select id="templateSelect" class="select-input" aria-label="テンプレート選択"></select>
+                <button id="addTemplateButton" class="button-secondary" type="button">選んだテンプレートを追加</button>
+              </div>
+            </div>
+          </details>
+        </div>
+
+        <div id="todayExercises" class="exercise-list"></div>
+
+        <div class="footer-actions">
+          <button id="saveButton" class="button" type="button">今日の記録を保存</button>
+          <span id="saveStatus" class="save-status"></span>
+        </div>
+
+        <div class="workout-summary">
+          <div class="section-head compact">
+            <div>
+              <p class="section-kicker">SUMMARY</p>
+              <h2>今日の概要</h2>
+            </div>
+          </div>
+          <div id="summaryMount"></div>
+        </div>
+      </section>
+
+      <aside class="panel panel-side">
+        <div class="section-head compact">
+          <div>
+            <p class="section-kicker">INSIGHT</p>
+            <h2>記録とPR</h2>
+          </div>
+        </div>
+
+        <details class="info-card collapsible-card">
+          <summary>前回記録を見る</summary>
+          <div class="collapsible-body">
+            <div id="previousSummary" class="info-list empty-state">まだ過去記録がありません。</div>
+          </div>
+        </details>
+
+        <div class="info-card">
+          <h3>PR更新</h3>
+          <div id="prSummary" class="info-list empty-state">入力内容からPRを自動判定します。</div>
+        </div>
+
+        <details class="info-card collapsible-card">
+          <summary>保存済みテンプレートを見る</summary>
+          <div class="collapsible-body">
+            <div id="templateSummary" class="info-list empty-state">テンプレートはまだありません。</div>
+          </div>
+        </details>
+      </aside>
+
+      <section class="panel panel-history" hidden>
+        <div class="section-head">
+          <div>
+            <p class="section-kicker">HISTORY</p>
+            <h2>過去ログ</h2>
+          </div>
+          <div class="history-actions">
+            <button id="backToMainButton" class="button-secondary" type="button">入力へ戻る</button>
+            <div class="tabs">
+              <button id="calendarTab" class="tab active" type="button">カレンダー</button>
+              <button id="tableTab" class="tab" type="button">テーブル</button>
+            </div>
+          </div>
+        </div>
+
+        <div id="calendarView" class="history-view active">
+          <div class="calendar-header">
+            <button id="prevMonthButton" class="icon-button" type="button" aria-label="前の月">‹</button>
+            <h3 id="calendarTitle">-</h3>
+            <button id="nextMonthButton" class="icon-button" type="button" aria-label="次の月">›</button>
+          </div>
+          <div id="weeklyTrainingSummary" class="weekly-summary"></div>
+          <div class="calendar-weekdays">
+            <span>日</span>
+            <span>月</span>
+            <span>火</span>
+            <span>水</span>
+            <span>木</span>
+            <span>金</span>
+            <span>土</span>
+          </div>
+          <div id="calendarGrid" class="calendar-grid"></div>
+          <div id="calendarDatePanel" class="calendar-detail-panel" hidden>
+            <div class="calendar-detail-head">
+              <div>
+                <p class="mini-label">Selected Day</p>
+                <h3>日付詳細</h3>
+              </div>
+              <button id="closeCalendarDetailButton" class="button-secondary" type="button">閉じる</button>
+            </div>
+            <div id="calendarDateDetail" class="info-list empty-state"></div>
+          </div>
+        </div>
+
+        <div id="tableView" class="history-view">
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>日付</th>
+                  <th>Split</th>
+                  <th>部位</th>
+                  <th>種目</th>
+                  <th>セット内容</th>
+                  <th>合計set</th>
+                  <th>ボリューム</th>
+                  <th>PR</th>
+                  <th>メモ</th>
+                </tr>
+              </thead>
+              <tbody id="historyTableBody"></tbody>
+            </table>
+          </div>
+          <div id="tableDatePanel" class="calendar-detail-panel" hidden>
+            <div class="calendar-detail-head">
+              <div>
+                <p class="mini-label">Selected Day</p>
+                <h3>日付詳細</h3>
+              </div>
+              <button id="closeTableDetailButton" class="button-secondary" type="button">閉じる</button>
+            </div>
+            <div id="tableDateDetail" class="info-list empty-state"></div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <template id="exerciseTemplate">
+    <article class="exercise-card">
+      <div class="exercise-top">
+        <div class="field grow">
+          <label>種目名</label>
+          <input class="exercise-name" type="text" placeholder="例: ベンチプレス">
+        </div>
+        <div class="field compact-field">
+          <label>部位</label>
+          <select class="exercise-body-part select-input"></select>
+        </div>
+      </div>
+
+      <div class="exercise-meta">
+        <div class="mini-stat">
+          <span class="mini-label">合計セット</span>
+          <strong class="exercise-total-sets">0</strong>
+        </div>
+        <div class="mini-stat">
+          <span class="mini-label">合計ボリューム</span>
+          <strong class="exercise-volume">0kg</strong>
+        </div>
+      </div>
+
+      <div class="sets-block">
+        <div class="sets-head">
+          <span>セット記録</span>
+          <button class="button-secondary add-set-button" type="button">セットを追加</button>
+        </div>
+        <div class="sets-table">
+          <div class="sets-table-header">
+            <span>Set</span>
+            <span>重量(kg)</span>
+            <span>回数</span>
+            <span></span>
+          </div>
+          <div class="set-list"></div>
+        </div>
+      </div>
+
+      <div class="exercise-bottom">
+        <div class="field grow">
+          <label>メモ</label>
+          <textarea class="exercise-notes" rows="2" placeholder="フォーム、疲労感、次回メモなど"></textarea>
+        </div>
+        <div class="previous-record" hidden>
+          <span class="mini-label">前回の同じ種目</span>
+          <div class="previous-record-text">過去記録なし</div>
+        </div>
+      </div>
+
+      <div class="exercise-actions">
+        <div class="template-save-help">
+          <button class="button-secondary save-template-button" type="button">この種目をテンプレートとして保存</button>
+          <p class="action-help">今入力している種目名、部位、各セット内容を次回呼び出せるよう保存します。</p>
+        </div>
+        <button class="remove-button" type="button">削除</button>
+      </div>
+    </article>
+  </template>
+
+  <template id="setRowTemplate">
+    <div class="set-row">
+      <span class="set-index">1</span>
+      <input class="set-weight" type="number" min="0" step="0.5" inputmode="decimal" placeholder="30">
+      <input class="set-reps" type="number" min="0" step="1" inputmode="numeric" placeholder="8">
+      <button class="remove-set-button" type="button" aria-label="セット削除">×</button>
+    </div>
+  </template>
+
+  <script src="script.js"></script>
+</body>
+</html>
