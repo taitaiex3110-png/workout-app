@@ -353,6 +353,8 @@ function updateSetField(exerciseIndex, setIndex, key, value, card) {
 }
 
 function syncExerciseCardUI(card, exercise) {
+  const exerciseOrder = state.todayExercises.indexOf(exercise) + 1;
+  card.querySelector(".exercise-order").textContent = `${exerciseOrder}種目目`;
   card.querySelector(".exercise-total-sets").textContent = String(getEffectiveSetCount(exercise.sets));
   card.querySelector(".exercise-volume").textContent = `${calculateVolume(exercise.sets)}kg`;
 
@@ -370,6 +372,7 @@ function syncExerciseCardUI(card, exercise) {
   const noteHtml = previousRecord.exercise.notes ? `<span>${escapeHtml(previousRecord.exercise.notes)}</span>` : "";
   previousContainer.innerHTML = `
     <strong>${escapeHtml(formatDateJP(previousRecord.date))}</strong>
+    <span>前回は${previousRecord.exerciseOrder}種目目${previousRecord.exerciseOrder !== exerciseOrder ? `（今回は${exerciseOrder}種目目・実施順が異なります）` : "（今回と同じ順番）"}</span>
     ${formatSetRows(previousRecord.exercise.sets)}
     ${noteHtml}
   `;
@@ -426,11 +429,11 @@ function renderPreviousSummary() {
 
   elements.previousSummary.className = "info-list";
   elements.previousSummary.innerHTML = "";
-  previousRecord.exercises.forEach((exercise) => {
+  previousRecord.exercises.forEach((exercise, exerciseIndex) => {
     const row = document.createElement("div");
     row.className = "summary-row";
     row.innerHTML = `
-      <strong>${escapeHtml(exercise.name || "未入力種目")}</strong>
+      <strong>${exerciseIndex + 1}種目目: ${escapeHtml(exercise.name || "未入力種目")}</strong>
       <span class="summary-meta">${escapeHtml(formatDateJP(previousRecord.date))} / ${escapeHtml(getBodyPartLabel(exercise.bodyPart))} / ${escapeHtml(previousRecord.split || "-")}</span>
       <span>${formatSetRows(exercise.sets)}</span>
     `;
@@ -605,9 +608,9 @@ function renderDateDetailInto(container, selectedDate, record, expanded) {
       <strong>${escapeHtml(formatDateJP(selectedDate))}</strong>
       <div class="detail-meta">Split: ${escapeHtml(record?.split || "-")}</div>
     </div>
-    ${(record?.exercises || []).map((exercise) => `
+    ${(record?.exercises || []).map((exercise, exerciseIndex) => `
       <div class="detail-block detail-exercise">
-        <strong>${escapeHtml(exercise.name || "未入力種目")}</strong>
+        <strong>${exerciseIndex + 1}種目目: ${escapeHtml(exercise.name || "未入力種目")}</strong>
         <div class="detail-meta">${escapeHtml(getBodyPartLabel(exercise.bodyPart))}</div>
         <div class="detail-meta">${formatSetRows(exercise.sets)}</div>
         ${exercise.notes ? `<div class="detail-meta">メモ: ${escapeHtml(exercise.notes)}</div>` : ""}
@@ -871,9 +874,10 @@ function findMostRecentExercise(name) {
     .reverse();
 
   for (const date of dates) {
-    const match = state.records[date].exercises.find((exercise) => exercise.name.trim().toLowerCase() === normalizedName);
-    if (match) {
-      return { date, exercise: normalizeExercise(match) };
+    const exercises = state.records[date].exercises;
+    const matchIndex = exercises.findIndex((exercise) => exercise.name.trim().toLowerCase() === normalizedName);
+    if (matchIndex !== -1) {
+      return { date, exercise: normalizeExercise(exercises[matchIndex]), exerciseOrder: matchIndex + 1 };
     }
   }
 

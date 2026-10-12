@@ -1,7 +1,7 @@
 const CACHE_PREFIX = `workout-app:${self.registration.scope}:`;
-const CACHE_NAME = `${CACHE_PREFIX}2026.10.12.1`;
+const CACHE_NAME = `${CACHE_PREFIX}2026.10.12.2`;
 const APP_SHELL = [
-  "./index.html", "./style.css?v=backup-1", "./script.js?v=backup-1",
+  "./index.html", "./style.css?v=backup-1", "./script.js?v=order-1",
   "./backup-core.js?v=backup-1", "./backup-ui.js?v=backup-1", "./manifest.json",
   "./icons/icon-192.png", "./icons/icon-512.png", "./icons/icon-maskable-512.png", "./icons/apple-touch-icon.png"
 ];
