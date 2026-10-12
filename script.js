@@ -1,6 +1,13 @@
 const STORAGE_KEY = "workout-routine-app-records";
 const TEMPLATE_STORAGE_KEY = "workout-routine-app-templates";
 
+try {
+  WorkoutBackup.recover(localStorage);
+} catch (error) {
+  alert("中断した取り込みの復旧ができませんでした。サイトデータを削除せず、この画面を閉じて再度開いてください。");
+  throw error;
+}
+
 const BODY_PARTS = [
   { id: "chest", label: "胸" },
   { id: "back", label: "背中" },
@@ -95,24 +102,23 @@ const elements = {
   setRowTemplate: document.getElementById("setRowTemplate")
 };
 
+let editorBaseline = "";
 initialize();
 
 function initialize() {
-  registerServiceWorker();
   loadExercisesForDate(state.todayKey);
   moveSummaryBelowInput();
   bindEvents();
   renderAll();
+  editorBaseline = editorSnapshot();
 }
 
-function registerServiceWorker() {
-  if (!("serviceWorker" in navigator)) return;
+function editorSnapshot() {
+  return JSON.stringify([state.currentDate, state.currentSplit, state.todayExercises]);
+}
 
-  window.addEventListener("load", () => {
-    navigator.serviceWorker.register("./service-worker.js").catch((error) => {
-      console.warn("Service worker registration failed:", error);
-    });
-  });
+function hasUnsavedWorkout() {
+  return editorSnapshot() !== editorBaseline;
 }
 
 function bindEvents() {
@@ -402,6 +408,7 @@ function saveCurrentRecord() {
   };
 
   persistRecords();
+  editorBaseline = editorSnapshot();
   elements.saveStatus.textContent = "保存しました。";
   renderAll();
   window.setTimeout(() => {
@@ -717,6 +724,7 @@ function enterEditMode(dateKey) {
   state.selectedCalendarDate = dateKey;
   state.calendarDate = new Date(`${dateKey}T00:00:00`);
   loadExercisesForDate(dateKey);
+  editorBaseline = editorSnapshot();
   renderAll();
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
@@ -763,7 +771,7 @@ function loadTemplates() {
     if (!raw) return defaultTemplates.map(cloneTemplate);
     const parsed = JSON.parse(raw);
     const normalized = Array.isArray(parsed) ? parsed.map(normalizeTemplate) : [];
-    return normalized.length > 0 ? normalized : defaultTemplates.map(cloneTemplate);
+    return normalized;
   } catch (error) {
     return defaultTemplates.map(cloneTemplate);
   }
@@ -872,12 +880,12 @@ function findMostRecentExercise(name) {
   return null;
 }
 
-function getPreviousBest(name) {
+function getPreviousBest(name, beforeDate = state.currentDate) {
   const normalizedName = name.trim().toLowerCase();
   let best = null;
 
   Object.keys(state.records).forEach((date) => {
-    if (date >= state.currentDate) return;
+    if (date >= beforeDate) return;
     state.records[date].exercises.forEach((exercise) => {
       if (exercise.name.trim().toLowerCase() !== normalizedName) return;
       if (!best || calculateVolume(exercise.sets) > calculateVolume(best.sets)) {
@@ -889,11 +897,11 @@ function getPreviousBest(name) {
   return best;
 }
 
-function isPersonalRecord(exercise) {
+function isPersonalRecord(exercise, beforeDate = state.currentDate) {
   if (!exercise.name.trim()) return false;
   const currentVolume = calculateVolume(exercise.sets);
   if (currentVolume === 0) return false;
-  const previousBest = getPreviousBest(exercise.name);
+  const previousBest = getPreviousBest(exercise.name, beforeDate);
   if (!previousBest) return true;
   return currentVolume > calculateVolume(previousBest.sets);
 }
@@ -904,7 +912,8 @@ function getAllRowsSorted() {
     .flatMap((record) => record.exercises.map((exercise) => ({
       date: record.date,
       split: record.split,
-      ...normalizeExercise(exercise, record.split)
+      ...normalizeExercise(exercise, record.split),
+      isPR: isPersonalRecord(exercise, record.date)
     })));
 }
 
